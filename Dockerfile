@@ -1,5 +1,5 @@
 # Imagen de OpenJDK para el contenedor
-FROM openjdk:17-jdk-slim
+FROM openjdk:17-jdk-alpine
 
 # Directorio de trabajo dentro del contenedor
 WORKDIR /app
