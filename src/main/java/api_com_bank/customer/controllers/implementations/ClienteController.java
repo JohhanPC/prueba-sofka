@@ -5,20 +5,16 @@ import api_com_bank.customer.dtos.request.ClienteRequestDTO;
 import api_com_bank.customer.dtos.response.ClienteResponseDTO;
 import api_com_bank.customer.dtos.response.ResponseDTO;
 import api_com_bank.customer.services.contracts.IClienteServices;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 public class ClienteController implements IClienteController {
 
     private final IClienteServices clienteServices;
-
-    @Autowired
-    public ClienteController(IClienteServices clienteServices) {
-        this.clienteServices = clienteServices;
-    }
 
     @Override
     public ResponseEntity<ResponseDTO> create(ClienteRequestDTO clienteRequestDTO) {

@@ -4,105 +4,57 @@ import api_com_bank.customer.dtos.request.ClienteRequestDTO;
 import api_com_bank.customer.dtos.response.ClienteResponseDTO;
 import api_com_bank.customer.dtos.response.ResponseDTO;
 import api_com_bank.customer.entities.ClienteEntity;
+import api_com_bank.customer.exceptions.ClientErrorException;
 import api_com_bank.customer.mappers.ClienteMapper;
 import api_com_bank.customer.repositories.ClienteRepository;
 import api_com_bank.customer.services.contracts.IClienteServices;
+import api_com_bank.customer.utils.Messages;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.Date;
-import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ClienteServices implements IClienteServices {
 
     private final ClienteRepository clienteRepository;
 
-    @Autowired
-    public ClienteServices(ClienteRepository clienteRepository) {
-        this.clienteRepository = clienteRepository;
-    }
-
     @Override
     public ResponseDTO create(ClienteRequestDTO clienteRequestDTO) {
-        ResponseDTO response = new ResponseDTO();
-        try {
-            log.info("Creando cliente: {}", clienteRequestDTO);
-            ClienteEntity clienteEntity = ClienteMapper.INSTANCE.toEntity(clienteRequestDTO);
-            log.info("Cliente Entity antes de guardar: " + clienteEntity);
+        log.info("Creando cliente: {}", clienteRequestDTO);
+        ClienteEntity clienteEntity = ClienteMapper.INSTANCE.toEntity(clienteRequestDTO);
+        clienteRepository.save(clienteEntity);
 
-            clienteRepository.save(clienteEntity);
-
-            response.setMessage("Cliente creado exitosamente");
-            response.setRc("00"); // "00" es un código comúnmente usado para éxito
-            response.setDate(new Date());
-
-        } catch (Exception ex) {
-            response.setMessage("Error al crear el cliente: " + ex.getMessage());
-            response.setRc("99"); // "99" puede indicar un error general
-            response.setDate(new Date());
-        }
-        return response;
+        return new ResponseDTO(Messages.CLIENTE_CREADO, "00", new Date());
     }
 
     @Override
     public ResponseDTO update(ClienteRequestDTO clienteRequestDTO) {
-        ResponseDTO response = new ResponseDTO();
-        try {
-            Optional<ClienteEntity> clienteOptional = clienteRepository.findById(clienteRequestDTO.getClienteId());
-            if (clienteOptional.isPresent()) {
-                clienteOptional.get();
-                ClienteEntity clienteToUpdate;
-                clienteToUpdate = ClienteMapper.INSTANCE.toEntity(clienteRequestDTO);
-                clienteToUpdate.setId(clienteOptional.get().getId()); // Asegura que se conserva el ID original
-                clienteRepository.save(clienteToUpdate);
+        ClienteEntity clienteToUpdate = clienteRepository.findById(clienteRequestDTO.getClienteId())
+                .orElseThrow(() -> new ClientErrorException(String.format(Messages.CLIENTE_NO_ENCONTRADO, clienteRequestDTO.getClienteId())));
 
-                response.setMessage("Cliente actualizado exitosamente");
-                response.setRc("00");
-            } else {
-                response.setMessage("Cliente no encontrado");
-                response.setRc("01");
-            }
-        } catch (Exception ex) {
-            response.setMessage("Error al actualizar el cliente: " + ex.getMessage());
-            response.setRc("99");
-        }
-        response.setDate(new Date());
-        return response;
+        ClienteEntity clienteEntity = ClienteMapper.INSTANCE.toEntity(clienteRequestDTO);
+        clienteEntity.setId(clienteToUpdate.getId()); // Mantiene el ID original
+        clienteRepository.save(clienteEntity);
+
+        return new ResponseDTO(Messages.CLIENTE_ACTUALIZADO, "00", new Date());
     }
 
     @Override
     public ResponseDTO delete(String clienteId) {
-        ResponseDTO response = new ResponseDTO();
-        try {
-            Optional<ClienteEntity> clienteOptional = clienteRepository.findById(clienteId);
-            if (clienteOptional.isPresent()) {
-                clienteRepository.delete(clienteOptional.get());
-                response.setMessage("Cliente eliminado exitosamente");
-                response.setRc("00");
-            } else {
-                response.setMessage("Cliente no encontrado");
-                response.setRc("01");
-            }
-        } catch (Exception ex) {
-            response.setMessage("Error al eliminar el cliente: " + ex.getMessage());
-            response.setRc("99");
-        }
-        response.setDate(new Date());
-        return response;
+        ClienteEntity clienteToDelete = clienteRepository.findById(clienteId)
+                .orElseThrow(() -> new ClientErrorException(String.format(Messages.CLIENTE_NO_ENCONTRADO, clienteId)));
+
+        clienteRepository.delete(clienteToDelete);
+        return new ResponseDTO(Messages.CLIENTE_ELIMINADO, "00", new Date());
     }
 
     @Override
     public ClienteResponseDTO findById(String clienteId) {
-        try {
-            Optional<ClienteEntity> clienteOptional = clienteRepository.findById(clienteId);
-            return clienteOptional.map(ClienteMapper.INSTANCE::toDto).orElse(null);
-        } catch (Exception ex) {
-            log.error("Error al buscar el cliente: {}", ex.getMessage());
-            return null;
-        }
+        return clienteRepository.findById(clienteId)
+                .map(ClienteMapper.INSTANCE::toDto)
+                .orElseThrow(() -> new ClientErrorException(String.format(Messages.CLIENTE_NO_ENCONTRADO, clienteId)));
     }
-
 }
